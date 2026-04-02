@@ -1,0 +1,197 @@
+<link rel="stylesheet" href="/static/style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/static/script.js"></script>
+
+<div id="loader" class="loader hidden"></div>
+<div id="toast" class="toast hidden"></div>
+
+<div class="dashboard">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <h2>⚡ Data Nexus</h2>
+        <ul>
+            <li onclick="showSection('overview')"> 🧠 Summary  </li>
+            <li onclick="showSection('analytics')">📊 Insights </li>
+            <li onclick="showSection('history')">🗂 Records</li>
+            <li onclick="toggleTheme()">🌙 Toggle Theme</li>
+            <li><a href="/logout" style="color:white;">Logout</a></li>
+        </ul>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+
+        <!-- OVERVIEW -->
+        <div id="overview" class="section active">
+
+            <h2><h2>Data Intelligence Dashboard</h2></h2>
+
+            <!-- Upload -->
+            <div class="glass">
+                <form method="POST" enctype="multipart/form-data">
+                    <input type="file" name="dataset" required>
+                    <button>Upload Dataset</button>
+                </form>
+            </div>
+
+            <!-- KPI -->
+            {% if stats %}
+            <div class="kpi-container">
+                {% for key, val in stats.items() %}
+                <div class="kpi">
+                    <h3>{{ key }}</h3>
+                    <p>Mean: {{ val.mean }}</p>
+                    <p>Median: {{ val.median }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+        </div>
+
+        <!-- ANALYTICS -->
+        <div id="analytics" class="section">
+
+            <h2>📈 Analytics</h2>
+
+            <div class="glass">
+                <div class="chart-container">
+
+                    <div class="chart-box">
+                        <canvas id="chart"></canvas>
+                    </div>
+
+                    <div class="chart-box">
+                        <canvas id="lineChart"></canvas>
+                    </div>
+
+                    <div class="chart-box">
+                        <canvas id="pieChart"></canvas>
+                    </div>
+
+                </div>
+
+                <!-- Backend Chart -->
+                <img src="/static/chart.png" style="width:100%; margin-top:20px;">
+                <img src="/static/hist.png" style="width:100%; margin-top:20px;">
+            </div>
+
+        </div>
+
+        <!-- HISTORY -->
+        <div id="history" class="section">
+
+            <h2>📁 Dataset Preview</h2>
+
+            {% if preview %}
+            <div class="glass">
+                <table border="1">
+                    <tr>
+                        {% for k in preview[0].keys() %}
+                        <th>{{k}}</th>
+                        {% endfor %}
+                    </tr>
+
+                    {% for r in preview %}
+                    <tr>
+                        {% for v in r.values() %}
+                        <td>{{v}}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+            {% endif %}
+
+            <!-- Download -->
+            <div class="glass">
+                <a href="/download">
+                    <button>⬇ Download Report</button>
+                </a>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<script>
+// ================= NAVIGATION =================
+function showSection(id) {
+    document.querySelectorAll(".section").forEach(sec => {
+        sec.classList.remove("active");
+    });
+
+    document.getElementById(id).classList.add("active");
+}
+
+// ================= CHARTS =================
+let s = JSON.parse('{{ stats | tojson | safe if stats else "{}" }}');
+
+if (s && Object.keys(s).length > 0) {
+    let labels = Object.keys(s);
+    let values = labels.map(k => s[k].mean);
+
+    new Chart(document.getElementById("chart"), {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [{ label: "Mean", data: values }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    new Chart(document.getElementById("lineChart"), {
+        type: "line",
+        data: {
+            labels: labels,
+            datasets: [{ label: "Trend", data: values }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    new Chart(document.getElementById("pieChart"), {
+        type: "pie",
+        data: {
+            labels: labels,
+            datasets: [{ data: values }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    showToast("Dataset processed successfully 🚀");
+}
+
+// ================= LOADER =================
+const form = document.querySelector("form");
+const loader = document.getElementById("loader");
+
+if (form) {
+    form.addEventListener("submit", () => {
+        loader.classList.remove("hidden");
+    });
+}
+
+// ================= TOAST =================
+function showToast(message) {
+    const toast = document.getElementById("toast");
+    if (!toast) return;
+
+    toast.innerText = message;
+    toast.classList.remove("hidden");
+
+    setTimeout(() => {
+        toast.classList.add("hidden");
+    }, 3000);
+}
+</script>
